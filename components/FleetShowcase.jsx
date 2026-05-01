@@ -6,7 +6,7 @@ import Image from "next/image";
 const BUSES = [
   {
     id: "dawood",
-    name: "Dawood",
+    name: "Komban Dawood",
     image:
       "https://res.cloudinary.com/dhh2nd2bg/image/upload/v1777650788/dawood_ouyj83.png",
     seats: "40-49",
@@ -21,7 +21,7 @@ const BUSES = [
   },
   {
     id: "bombay",
-    name: "Bombay",
+    name: "Komban Bombay",
     image:
       "https://res.cloudinary.com/dhh2nd2bg/image/upload/v1777650787/bombay_gzwbwb.png",
     seats: "40-49",
@@ -36,7 +36,7 @@ const BUSES = [
   },
   {
     id: "big-brother",
-    name: "Big Brother",
+    name: "Komban Big Brother",
     image:
       "https://res.cloudinary.com/dhh2nd2bg/image/upload/v1777650786/big-brother_ze9aua.png",
     seats: "40-49",
@@ -51,7 +51,7 @@ const BUSES = [
   },
   {
     id: "yodhavu",
-    name: "Yodhavu",
+    name: "Komban Yodhavu",
     image:
       "https://res.cloudinary.com/dhh2nd2bg/image/upload/v1777650780/yodhavu_usbkhq.png",
     seats: "40-49",
@@ -224,21 +224,11 @@ export default function FleetShowcase() {
             />
             <div className="relative z-[1000] w-full max-w-3xl glass rounded-2xl p-5 md:p-8 pb-8 text-left max-h-[92dvh] overflow-y-auto overscroll-contain">
               <div className="flex items-start justify-between gap-4">
-                <div className="flex items-start gap-3">
-                  <div className="relative w-20 h-14 overflow-hidden flex-shrink-0 mt-1">
-                    <Image
-                      src={selectedBus.image}
-                      alt={selectedBus.name}
-                      fill
-                      className="object-contain"
-                    />
-                  </div>
-                  <div>
+                <div>
                   <p className="text-[11px] uppercase tracking-widest text-white/40 font-body">
                     Booking for
                   </p>
                   <h3 className="font-display text-3xl text-white">{selectedBus.name}</h3>
-                  </div>
                 </div>
                 <button
                   type="button"
