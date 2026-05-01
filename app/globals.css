@@ -1,0 +1,100 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Fonts are loaded via next/font/google in app/layout.jsx — no @import needed */
+
+:root {
+  --bg:     #000000;
+  --fg:     #ffffff;
+  --accent: #e10600;
+  --gold:   #D4A84B;
+}
+
+html, body {
+  background: var(--bg);
+  color: var(--fg);
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Red Rose as the page default; Metal Mania applied via font-display class */
+  font-family: var(--font-body), serif;
+}
+
+* { box-sizing: border-box; }
+
+/* Scrollbar */
+::-webkit-scrollbar       { width: 6px; }
+::-webkit-scrollbar-track { background: #000; }
+::-webkit-scrollbar-thumb { background: #222; border-radius: 3px; }
+
+/* Animations */
+@keyframes pulse-soft {
+  0%, 100% { opacity: 0.5; }
+  50%       { opacity: 1;   }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0);    }
+  50%       { transform: translateY(-8px); }
+}
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+
+.animate-pulse-soft { animation: pulse-soft 1.8s ease-in-out infinite; }
+.animate-float      { animation: float     3s   ease-in-out infinite; }
+.animate-fade-up    { animation: fadeUp    0.7s ease-out both; }
+
+.shimmer-text {
+  background: linear-gradient(90deg, #fff 0%, var(--gold) 40%, #fff 60%, var(--gold) 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 4s linear infinite;
+}
+
+/* Section divider line */
+.divider {
+  width: 60px;
+  height: 3px;
+  background: var(--accent);
+  border-radius: 2px;
+  margin: 0 auto 2rem;
+}
+
+.divider-fade {
+  width: min(220px, 42vw);
+  height: 1px;
+  margin: 0 auto 2rem;
+  background: linear-gradient(90deg, transparent 0%, rgba(225, 6, 0, 0.7) 50%, transparent 100%);
+}
+
+.section-fade {
+  isolation: isolate;
+}
+
+.section-fade::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  left: 0;
+  right: 0;
+  height: 72px;
+  pointer-events: none;
+  z-index: 1;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.45), transparent);
+}
+
+/* Card glass effect */
+.glass {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
