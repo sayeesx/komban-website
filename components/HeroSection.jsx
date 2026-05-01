@@ -23,6 +23,8 @@ export default function HeroSection({ scrollHeight = "500vh", endHold = 0 }) {
   const inflightRef    = useRef(new Set());
   const targetIdxRef   = useRef(0);
   const currentIdxRef  = useRef(0);
+  const lastSyncedIdxRef = useRef(-1);
+  const lastDrawnIdxRef = useRef(-1);
   const rafRef         = useRef(null);
   const smoothProgressRef = useRef(0);
   const targetProgressRef = useRef(0);
@@ -61,7 +63,7 @@ export default function HeroSection({ scrollHeight = "500vh", endHold = 0 }) {
     };
 
     const tick = () => {
-      currentY += (targetY - currentY) * 0.09;
+      currentY += (targetY - currentY) * 0.06;
       if (Math.abs(targetY - currentY) < 0.35) {
         currentY = targetY;
         smoothing = false;
@@ -75,7 +77,7 @@ export default function HeroSection({ scrollHeight = "500vh", endHold = 0 }) {
 
     const onWheel = (e) => {
       e.preventDefault();
-      targetY = clampY(targetY + e.deltaY * 0.9);
+      targetY = clampY(targetY + e.deltaY * 0.75);
       if (!smoothing) {
         smoothing = true;
         if (!rafId) rafId = requestAnimationFrame(tick);
@@ -203,6 +205,8 @@ export default function HeroSection({ scrollHeight = "500vh", endHold = 0 }) {
       }
       // Always start from frame 1 when the hero becomes ready.
       currentIdxRef.current = firstValidIdx;
+      lastSyncedIdxRef.current = firstValidIdx;
+      lastDrawnIdxRef.current = firstValidIdx;
       syncBufferRef.current(firstValidIdx);
       drawFrame(firstValidIdx);
       readyTimeout = window.setTimeout(() => {
@@ -268,11 +272,18 @@ export default function HeroSection({ scrollHeight = "500vh", endHold = 0 }) {
       smoothProgressRef.current = Math.abs(target - next) < 0.0005 ? target : next;
 
       const anim = Math.min(smoothProgressRef.current / Math.max(1 - endHold, 0.0001), 1);
-      const idx = Math.min(FRAME_COUNT - 1, Math.floor(anim * (FRAME_COUNT - 1)));
+      const maxPlayableFrame = Math.max(0, FRAME_COUNT - 6);
+      const idx = Math.min(maxPlayableFrame, Math.floor(anim * maxPlayableFrame));
 
-      syncBuffer(idx);
-      currentIdxRef.current = idx;
-      drawFrame(idx);
+      if (idx !== lastSyncedIdxRef.current) {
+        syncBuffer(idx);
+        lastSyncedIdxRef.current = idx;
+      }
+      if (idx !== lastDrawnIdxRef.current) {
+        currentIdxRef.current = idx;
+        drawFrame(idx);
+        lastDrawnIdxRef.current = idx;
+      }
 
       if (Math.abs(targetProgressRef.current - smoothProgressRef.current) > 0.0005) {
         rafRef.current = requestAnimationFrame(render);
@@ -343,7 +354,7 @@ export default function HeroSection({ scrollHeight = "500vh", endHold = 0 }) {
 
           {/* ── LEFT: brand copy ─────────────────────────────────── */}
           {/* Mobile order-1 = on top. Desktop order stays natural (left col). */}
-          <div className="flex flex-col justify-center gap-4 md:gap-5 md:pr-8 order-1 text-center md:text-left md:-mt-4">
+          <div className="flex flex-col justify-center gap-4 md:gap-5 md:pr-8 order-1 text-center md:text-left mt-8 md:mt-0 md:-mt-4">
             {/* label */}
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 text-[10px] uppercase tracking-[0.35em] text-white/50 font-body self-center md:self-start">
               <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse-soft" />
@@ -353,7 +364,7 @@ export default function HeroSection({ scrollHeight = "500vh", endHold = 0 }) {
               ᴋᴇʀᴀʟᴀ: 7594 007 005 · ᴋᴀʀɴᴀᴛᴀᴋᴀ: 7594 007 004
             </p>
 
-            <h1 className="font-display text-[2.45rem] sm:text-[3.6rem] lg:text-6xl xl:text-7xl leading-[1.0] tracking-wide hero-title-gradient">
+            <h1 className="font-display text-[2.8rem] sm:text-[3.6rem] lg:text-6xl xl:text-7xl leading-[1.0] tracking-wide hero-title-gradient">
               one team<br />one fight
             </h1>
 
