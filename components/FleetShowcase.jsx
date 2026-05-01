@@ -6,7 +6,7 @@ import Image from "next/image";
 const BUSES = [
   {
     id: "dawood",
-    name: "Komban Dawood",
+    name: "Dawood",
     image:
       "https://res.cloudinary.com/dhh2nd2bg/image/upload/v1777650788/dawood_ouyj83.png",
     seats: "40-49",
@@ -21,7 +21,7 @@ const BUSES = [
   },
   {
     id: "bombay",
-    name: "Komban Bombay",
+    name: "Bombay",
     image:
       "https://res.cloudinary.com/dhh2nd2bg/image/upload/v1777650787/bombay_gzwbwb.png",
     seats: "40-49",
@@ -36,7 +36,7 @@ const BUSES = [
   },
   {
     id: "big-brother",
-    name: "Komban Big Brother",
+    name: "Big Brother",
     image:
       "https://res.cloudinary.com/dhh2nd2bg/image/upload/v1777650786/big-brother_ze9aua.png",
     seats: "40-49",
@@ -51,7 +51,7 @@ const BUSES = [
   },
   {
     id: "yodhavu",
-    name: "Komban Yodhavu",
+    name: "Yodhavu",
     image:
       "https://res.cloudinary.com/dhh2nd2bg/image/upload/v1777650780/yodhavu_usbkhq.png",
     seats: "40-49",
@@ -216,19 +216,29 @@ export default function FleetShowcase() {
         </div>
 
         {isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center px-4 py-4">
+          <div className="fixed inset-0 z-[999] flex items-center justify-center p-3 sm:p-5">
             <div
               aria-hidden
-              className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/85 backdrop-blur-sm"
               onClick={closeBookingModal}
             />
-            <div className="relative z-10 w-full max-w-3xl glass rounded-2xl p-6 md:p-8 pb-8 text-left max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain">
+            <div className="relative z-[1000] w-full max-w-3xl glass rounded-2xl p-5 md:p-8 pb-8 text-left max-h-[92dvh] overflow-y-auto overscroll-contain">
               <div className="flex items-start justify-between gap-4">
-                <div>
+                <div className="flex items-start gap-3">
+                  <div className="relative w-20 h-14 overflow-hidden flex-shrink-0 mt-1">
+                    <Image
+                      src={selectedBus.image}
+                      alt={selectedBus.name}
+                      fill
+                      className="object-contain"
+                    />
+                  </div>
+                  <div>
                   <p className="text-[11px] uppercase tracking-widest text-white/40 font-body">
                     Booking for
                   </p>
                   <h3 className="font-display text-3xl text-white">{selectedBus.name}</h3>
+                  </div>
                 </div>
                 <button
                   type="button"
