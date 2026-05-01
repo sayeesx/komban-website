@@ -284,20 +284,10 @@ export default function HeroSection({ scrollHeight = "500vh", endHold = 0 }) {
       const rect   = el.getBoundingClientRect();
       const scroll = el.offsetHeight - window.innerHeight;
       const rawProgress = Math.min(Math.max(-rect.top / Math.max(scroll, 1), 0), 1);
-      const prevRaw = lastRawProgressRef.current;
-      const isScrollingDown = rawProgress > prevRaw + 0.0005;
       lastRawProgressRef.current = rawProgress;
 
-      // Mobile only: hard freeze while returning upward; unlock when user
-      // starts downward scrolling again from near the top of hero.
+      // Mobile only: hard freeze permanently after reaching end (until refresh).
       if (isMobileRef.current && endLockedRef.current) {
-        if (rawProgress <= 0.02 && isScrollingDown) {
-          endLockedRef.current = false;
-          smoothProgressRef.current = rawProgress;
-          targetProgressRef.current = rawProgress;
-          lastSyncedIdxRef.current = -1;
-          lastDrawnIdxRef.current = -1;
-        } else {
         if (lastSyncedIdxRef.current !== maxPlayableFrame) {
           syncBuffer(maxPlayableFrame);
           lastSyncedIdxRef.current = maxPlayableFrame;
@@ -308,7 +298,6 @@ export default function HeroSection({ scrollHeight = "500vh", endHold = 0 }) {
           lastDrawnIdxRef.current = maxPlayableFrame;
         }
         return;
-        }
       }
       targetProgressRef.current = rawProgress;
 
