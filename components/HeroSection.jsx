@@ -25,9 +25,12 @@ export default function HeroSection({ scrollHeight = "500vh", endHold = 0 }) {
   const currentIdxRef  = useRef(0);
   const lastSyncedIdxRef = useRef(-1);
   const lastDrawnIdxRef = useRef(-1);
+  const endLockedRef = useRef(false);
   const rafRef         = useRef(null);
   const smoothProgressRef = useRef(0);
   const targetProgressRef = useRef(0);
+  const isMobileRef = useRef(false);
+  const [isMobile, setIsMobile] = useState(false);
   const [experienceReady, setExperienceReady] = useState(false);
   const [showFirstLoadGate, setShowFirstLoadGate] = useState(true);
 
@@ -43,6 +46,18 @@ export default function HeroSection({ scrollHeight = "500vh", endHold = 0 }) {
     } catch {
       // ignore localStorage issues and keep gate enabled
     }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const media = window.matchMedia("(max-width: 767px)");
+    const updateMobile = () => {
+      isMobileRef.current = media.matches;
+      setIsMobile(media.matches);
+    };
+    updateMobile();
+    media.addEventListener("change", updateMobile);
+    return () => media.removeEventListener("change", updateMobile);
   }, []);
 
   useEffect(() => {
@@ -207,6 +222,7 @@ export default function HeroSection({ scrollHeight = "500vh", endHold = 0 }) {
       currentIdxRef.current = firstValidIdx;
       lastSyncedIdxRef.current = firstValidIdx;
       lastDrawnIdxRef.current = firstValidIdx;
+      endLockedRef.current = false;
       syncBufferRef.current(firstValidIdx);
       drawFrame(firstValidIdx);
       readyTimeout = window.setTimeout(() => {
@@ -268,12 +284,21 @@ export default function HeroSection({ scrollHeight = "500vh", endHold = 0 }) {
 
       const current = smoothProgressRef.current;
       const target = targetProgressRef.current;
-      const next = current + (target - current) * 0.12;
+      const lerp = isMobileRef.current ? 0.2 : 0.12;
+      const next = current + (target - current) * lerp;
       smoothProgressRef.current = Math.abs(target - next) < 0.0005 ? target : next;
 
-      const anim = Math.min(smoothProgressRef.current / Math.max(1 - endHold, 0.0001), 1);
+      const anim = Math.min(
+        smoothProgressRef.current / Math.max(1 - endHold, 0.0001),
+        1
+      );
       const maxPlayableFrame = Math.max(0, FRAME_COUNT - 6);
-      const idx = Math.min(maxPlayableFrame, Math.floor(anim * maxPlayableFrame));
+      const computedIdx = Math.min(maxPlayableFrame, Math.floor(anim * maxPlayableFrame));
+
+      // Once the last frame is reached, keep it fixed until user returns near top.
+      if (computedIdx >= maxPlayableFrame - 1) endLockedRef.current = true;
+      if (smoothProgressRef.current <= 0.01) endLockedRef.current = false;
+      const idx = endLockedRef.current ? maxPlayableFrame : computedIdx;
 
       if (idx !== lastSyncedIdxRef.current) {
         syncBuffer(idx);
@@ -329,7 +354,7 @@ export default function HeroSection({ scrollHeight = "500vh", endHold = 0 }) {
       <section
         ref={containerRef}
         className="relative w-full bg-black"
-        style={{ height: scrollHeight }}
+        style={{ height: isMobile ? "190vh" : scrollHeight }}
         aria-label="Komban hero"
       >
         {/* ── sticky two-column stage ──────────────────────────────── */}
@@ -350,11 +375,11 @@ export default function HeroSection({ scrollHeight = "500vh", endHold = 0 }) {
 
         {/* ── main two-column body ────────────────────────────────── */}
         {/* Desktop: left 2fr (copy) + right 6fr (larger canvas). Mobile: copy top, canvas below */}
-        <div className="relative z-10 flex-1 grid grid-cols-1 md:[grid-template-columns:2fr_6fr] items-center gap-3 md:gap-0 px-4 md:px-12 pt-12 md:pt-0 pb-5 md:pb-8">
+        <div className="relative z-10 flex-1 grid grid-cols-1 md:[grid-template-columns:2fr_6fr] items-center gap-1.5 md:gap-0 px-4 md:px-12 pt-12 md:pt-0 pb-5 md:pb-8">
 
           {/* ── LEFT: brand copy ─────────────────────────────────── */}
           {/* Mobile order-1 = on top. Desktop order stays natural (left col). */}
-          <div className="flex flex-col justify-center gap-4 md:gap-5 md:pr-8 order-1 text-center md:text-left mt-8 md:mt-0 md:-mt-4">
+          <div className="flex flex-col justify-center gap-4 md:gap-5 md:pr-8 order-1 text-center md:text-left mt-6 md:mt-0 md:-mt-4">
             {/* label */}
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 text-[10px] uppercase tracking-[0.35em] text-white/50 font-body self-center md:self-start">
               <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse-soft" />
@@ -400,7 +425,7 @@ export default function HeroSection({ scrollHeight = "500vh", endHold = 0 }) {
         </div>
 
         {/* bottom scroll arrow */}
-        <div className="relative z-10 flex justify-center pb-5 flex-shrink-0">
+        <div className="hidden md:flex relative z-10 justify-center pb-5 flex-shrink-0">
           <span className="w-px h-10 bg-gradient-to-b from-white/25 to-transparent" />
         </div>
         </div>
