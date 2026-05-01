@@ -64,6 +64,7 @@ export default function HeroSection({ scrollHeight = "500vh", endHold = 0 }) {
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (window.matchMedia("(max-width: 767px)").matches) return;
 
     let targetY = window.scrollY;
     let currentY = window.scrollY;
@@ -76,12 +77,6 @@ export default function HeroSection({ scrollHeight = "500vh", endHold = 0 }) {
         document.documentElement.scrollHeight - window.innerHeight
       );
       return Math.min(Math.max(value, 0), maxY);
-    };
-
-    const getHeroExitY = () => {
-      const el = containerRef.current;
-      if (!el) return 0;
-      return Math.max(0, el.offsetTop + el.offsetHeight - window.innerHeight);
     };
 
     const tick = () => {
@@ -100,10 +95,6 @@ export default function HeroSection({ scrollHeight = "500vh", endHold = 0 }) {
     const onWheel = (e) => {
       e.preventDefault();
       let nextTarget = clampY(targetY + e.deltaY * 0.75);
-      // Mobile only: after final frame lock, block upward scrolling past hero boundary.
-      if (isMobileRef.current && endLockedRef.current && e.deltaY < 0) {
-        nextTarget = Math.max(nextTarget, getHeroExitY());
-      }
       targetY = nextTarget;
       if (!smoothing) {
         smoothing = true;
@@ -112,15 +103,6 @@ export default function HeroSection({ scrollHeight = "500vh", endHold = 0 }) {
     };
 
     const onNativeScroll = () => {
-      if (isMobileRef.current && endLockedRef.current) {
-        const heroExitY = getHeroExitY();
-        if (window.scrollY < heroExitY) {
-          window.scrollTo(0, heroExitY);
-          currentY = heroExitY;
-          targetY = heroExitY;
-          return;
-        }
-      }
       if (smoothing) return;
       currentY = window.scrollY;
       targetY = window.scrollY;
