@@ -4,6 +4,19 @@ import FleetShowcase from "@/components/FleetShowcase";
 import AnimatedCount from "@/components/AnimatedCount";
 
 /* ─────────────────────── small reusable atoms ─────────────────────── */
+const CONTACT_NUMBERS = {
+  kerala: "7594 007 005",
+  karnataka: "7594 007 004",
+};
+
+const GALLERY_IMAGES = [
+  "https://res.cloudinary.com/dhh2nd2bg/image/upload/v1777650788/dawood_ouyj83.png",
+  "https://res.cloudinary.com/dhh2nd2bg/image/upload/v1777650787/bombay_gzwbwb.png",
+  "https://res.cloudinary.com/dhh2nd2bg/image/upload/v1777650786/big-brother_ze9aua.png",
+  "https://res.cloudinary.com/dhh2nd2bg/image/upload/v1777650780/yodhavu_usbkhq.png",
+  "https://res.cloudinary.com/dhh2nd2bg/image/upload/v1777650788/dawood_ouyj83.png",
+  "https://res.cloudinary.com/dhh2nd2bg/image/upload/v1777650786/big-brother_ze9aua.png",
+];
 
 function PremiumIcon({ type }) {
   const base = "w-6 h-6 text-accent";
@@ -36,6 +49,40 @@ function PremiumIcon({ type }) {
       <path d="M4 7h16" />
       <path d="M6 4h12v16H6z" />
       <path d="M9 11h6M9 15h4" />
+    </svg>
+  );
+}
+
+function WhyIcon({ type }) {
+  const base = "w-8 h-8 text-accent";
+  if (type === "maintained") {
+    return (
+      <svg viewBox="0 0 24 24" className={base} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M14.7 6.3a1 1 0 0 1 1.4 0l1.6 1.6a1 1 0 0 1 0 1.4l-6.9 6.9-3.6 1 1-3.6 6.5-6.9z" />
+        <path d="M4 20h16" />
+      </svg>
+    );
+  }
+  if (type === "drivers") {
+    return (
+      <svg viewBox="0 0 24 24" className={base} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="8" r="3" />
+        <path d="M5 20a7 7 0 0 1 14 0" />
+      </svg>
+    );
+  }
+  if (type === "pricing") {
+    return (
+      <svg viewBox="0 0 24 24" className={base} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="6" width="18" height="12" rx="2" />
+        <path d="M7 12h10M7 9h4M7 15h4" />
+      </svg>
+    );
+  }
+  return (
+    <svg viewBox="0 0 24 24" className={base} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
     </svg>
   );
 }
@@ -79,11 +126,14 @@ export default function Home() {
       {/* ══════════════════════════════════════════════════════════════
           3. WHAT WE OFFER
       ══════════════════════════════════════════════════════════════ */}
-      <section id="about" className="section-fade relative py-28 px-6 bg-black">
+      <section id="about" className="section-fade relative py-16 md:py-24 lg:py-28 px-4 md:px-6 bg-black">
         <div className="max-w-6xl mx-auto text-center">
           <SectionLabel>What We Offer</SectionLabel>
           <SectionHeading>Premium Travel.<br />Your Way.</SectionHeading>
           <Divider />
+          <p className="text-[11px] uppercase tracking-[0.22em] text-white/55 font-body mb-5">
+            Kerala&apos;s Biggest Fleet
+          </p>
           <p className="text-white/55 font-body max-w-2xl mx-auto mb-16 text-base leading-relaxed">
             Komban Bus Agency delivers premium travel experiences across Kerala. Our fleet combines bold design,
             advanced lighting, and comfortable interiors built for long-distance journeys and events.
@@ -97,8 +147,10 @@ export default function Home() {
               { icon: "groups", title: "College & Groups",   desc: "Affordable group bookings for institutions and corporates." },
             ].map((card) => (
               <div key={card.title} className="glass rounded-2xl p-7 text-left flex flex-col gap-3 hover:border-accent/30 transition-colors">
-                <PremiumIcon type={card.icon} />
-                <h3 className="font-display text-xl text-white">{card.title}</h3>
+                <div className="flex items-center gap-3">
+                  <PremiumIcon type={card.icon} />
+                  <h3 className="font-display text-xl text-white">{card.title}</h3>
+                </div>
                 <p className="text-sm text-white/50 font-body leading-relaxed">{card.desc}</p>
               </div>
             ))}
@@ -114,7 +166,7 @@ export default function Home() {
       {/* ══════════════════════════════════════════════════════════════
           5. EXPERIENCE HIGHLIGHTS
       ══════════════════════════════════════════════════════════════ */}
-      <section className="section-fade relative py-28 px-6 bg-black">
+      <section className="section-fade relative py-16 md:py-24 lg:py-28 px-4 md:px-6 bg-black">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <SectionLabel>The Experience</SectionLabel>
@@ -130,7 +182,7 @@ export default function Home() {
               { num: "04", title: "Group Ready",         desc: "Perfect for 20 to 49 passengers. Ideal for tours, weddings, corporate events, college trips, and pilgrimages." },
             ].map((item) => (
               <div key={item.num} className="glass rounded-2xl p-8 flex gap-6 hover:border-accent/20 transition-colors">
-                <span className="font-display text-5xl text-accent/30 leading-none select-none">
+                <span className="font-display text-5xl text-accent leading-none select-none">
                   <AnimatedCount to={Number(item.num)} />
                 </span>
                 <div>
@@ -146,7 +198,7 @@ export default function Home() {
       {/* ══════════════════════════════════════════════════════════════
           6. BOOKING FLOW
       ══════════════════════════════════════════════════════════════ */}
-      <section className="section-fade relative py-28 px-6 bg-surface overflow-hidden">
+      <section className="section-fade relative py-16 md:py-24 lg:py-28 px-4 md:px-6 bg-surface overflow-hidden">
         <div
           aria-hidden
           className="pointer-events-none absolute inset-x-0 bottom-0 h-64 bg-glow-bot opacity-40"
@@ -174,7 +226,7 @@ export default function Home() {
 
           <div className="mt-14 flex flex-col sm:flex-row items-center justify-center gap-4">
             <a
-              href="https://wa.me/919XXXXXXXXX"
+              href={`https://wa.me/91${CONTACT_NUMBERS.kerala.replace(/\s/g, "")}`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-3 px-8 py-4 bg-accent text-white text-sm font-body font-medium uppercase tracking-[0.2em] rounded-full hover:bg-accent-dark transition-colors"
@@ -186,7 +238,7 @@ export default function Home() {
               WhatsApp Booking
             </a>
             <a
-              href="tel:+919XXXXXXXXX"
+              href={`tel:+91${CONTACT_NUMBERS.kerala.replace(/\s/g, "")}`}
               className="inline-flex items-center gap-3 px-8 py-4 border border-white/20 text-white text-sm font-body font-medium uppercase tracking-[0.2em] rounded-full hover:bg-white/5 transition-colors"
             >
               Call Now
@@ -198,7 +250,7 @@ export default function Home() {
       {/* ══════════════════════════════════════════════════════════════
           7. WHY CHOOSE US
       ══════════════════════════════════════════════════════════════ */}
-      <section className="section-fade relative py-28 px-6 bg-black">
+      <section className="section-fade relative py-16 md:py-24 lg:py-28 px-4 md:px-6 bg-black">
         <div className="max-w-6xl mx-auto text-center">
           <SectionLabel>Why Komban</SectionLabel>
           <SectionHeading>Standards Others Can&apos;t Match</SectionHeading>
@@ -206,13 +258,13 @@ export default function Home() {
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-4">
             {[
-              { icon: "🔧", stat: "100%",  label: "Maintained Fleet"    },
-              { icon: "🧑‍✈️", stat: "5★",   label: "Experienced Drivers" },
-              { icon: "💳", stat: "Clear", label: "Transparent Pricing" },
-              { icon: "⏱️", stat: "On Time", label: "Every Single Trip"  },
+              { icon: "maintained", stat: "100%",  label: "Maintained Fleet"    },
+              { icon: "drivers", stat: "5★",   label: "Experienced Drivers" },
+              { icon: "pricing", stat: "Clear", label: "Transparent Pricing" },
+              { icon: "time", stat: "On Time", label: "Every Single Trip"  },
             ].map((item) => (
               <div key={item.label} className="glass rounded-2xl p-7 flex flex-col items-center gap-3 hover:border-accent/25 transition-colors">
-                <span className="text-4xl">{item.icon}</span>
+                <WhyIcon type={item.icon} />
                 <span className="font-display text-3xl text-accent">{item.stat}</span>
                 <span className="text-xs uppercase tracking-widest text-white/50 font-body">{item.label}</span>
               </div>
@@ -224,7 +276,7 @@ export default function Home() {
       {/* ══════════════════════════════════════════════════════════════
           8. GALLERY STRIP
       ══════════════════════════════════════════════════════════════ */}
-      <section id="gallery" className="section-fade relative py-28 px-6 bg-surface">
+      <section id="gallery" className="section-fade relative py-16 md:py-24 lg:py-28 px-4 md:px-6 bg-surface">
         <div className="max-w-6xl mx-auto text-center">
           <SectionLabel>Gallery</SectionLabel>
           <SectionHeading>Roads We&apos;ve Owned</SectionHeading>
@@ -233,17 +285,16 @@ export default function Home() {
             Night highways, glowing interiors, event convoys — Komban buses always deliver the shot.
           </p>
 
-          {/* Pull 6 spread-out frames as gallery thumbnails */}
+          {/* Cloudinary gallery thumbnails */}
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {[1, 16, 30, 46, 62, 80].map((frameNum) => (
-              <div key={frameNum} className="relative aspect-video rounded-xl overflow-hidden group cursor-pointer">
+            {GALLERY_IMAGES.map((src, index) => (
+              <div key={`${src}-${index}`} className="relative aspect-video rounded-xl overflow-hidden bg-transparent">
                 <Image
-                  src={`/frames/frame_${String(frameNum).padStart(4, "0")}.webp`}
-                  alt={`Komban Bus frame ${frameNum}`}
+                  src={src}
+                  alt={`Komban gallery image ${index + 1}`}
                   fill
-                  className="object-cover transition-transform duration-700 group-hover:scale-105"
+                  className="object-contain p-1"
                 />
-                <div className="absolute inset-0 bg-black/40 group-hover:bg-black/10 transition-colors duration-300" />
               </div>
             ))}
           </div>
@@ -253,7 +304,7 @@ export default function Home() {
       {/* ══════════════════════════════════════════════════════════════
           9. TESTIMONIALS
       ══════════════════════════════════════════════════════════════ */}
-      <section className="section-fade relative py-28 px-6 bg-black">
+      <section className="section-fade relative py-16 md:py-24 lg:py-28 px-4 md:px-6 bg-black">
         <div className="max-w-6xl mx-auto text-center">
           <SectionLabel>Testimonials</SectionLabel>
           <SectionHeading>What Passengers Say</SectionHeading>
@@ -280,7 +331,7 @@ export default function Home() {
       {/* ══════════════════════════════════════════════════════════════
           10. CONTACT / CTA
       ══════════════════════════════════════════════════════════════ */}
-      <section id="contact" className="section-fade relative py-28 px-6 bg-surface overflow-hidden">
+      <section id="contact" className="section-fade relative py-16 md:py-24 lg:py-28 px-4 md:px-6 bg-surface overflow-hidden">
         <div
           aria-hidden
           className="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 h-96 bg-glow-red opacity-30"
@@ -298,15 +349,15 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch">
             {/* Contact info */}
-            <div className="space-y-5">
+            <div className="h-full flex flex-col gap-5">
               {[
-                { icon: "📞", label: "Phone",     value: "+91 9XXXXXXXXX", href: "tel:+919XXXXXXXXX" },
-                { icon: "💬", label: "WhatsApp",  value: "+91 9XXXXXXXXX", href: "https://wa.me/919XXXXXXXXX" },
+                { icon: "📞", label: "Phone (Kerala)",     value: `+91 ${CONTACT_NUMBERS.kerala}`, href: `tel:+91${CONTACT_NUMBERS.kerala.replace(/\s/g, "")}` },
+                { icon: "💬", label: "Phone (Karnataka)",  value: `+91 ${CONTACT_NUMBERS.karnataka}`, href: `tel:+91${CONTACT_NUMBERS.karnataka.replace(/\s/g, "")}` },
                 { icon: "📍", label: "Base",      value: "Kerala, India",   href: null },
               ].map((c) => (
-                <div key={c.label} className="glass rounded-xl px-6 py-5 flex items-center gap-4">
+                <div key={c.label} className="glass rounded-xl px-6 py-5 flex items-center gap-4 flex-1 min-h-[98px]">
                   <span className="text-2xl">{c.icon}</span>
                   <div>
                     <p className="text-[10px] uppercase tracking-widest text-white/35 font-body">{c.label}</p>
@@ -318,15 +369,15 @@ export default function Home() {
                 </div>
               ))}
 
-              <div className="glass rounded-xl px-6 py-5">
-                <p className="text-[10px] uppercase tracking-widest text-white/35 font-body mb-3">Starting From</p>
-                <p className="font-display text-3xl text-accent">₹12,000 <span className="text-white/40 text-base">/day</span></p>
+              <div className="glass rounded-xl px-6 py-5 min-h-[110px]">
+                <p className="text-[10px] uppercase tracking-widest text-white/35 font-body mb-3">From</p>
+                <p className="font-display text-3xl text-accent">₹2000 <span className="text-white/40 text-base">/day</span></p>
                 <p className="text-xs text-white/35 font-body mt-1">Based on route, bus type, and duration.</p>
               </div>
             </div>
 
             {/* Quick enquiry form */}
-            <form className="glass rounded-2xl p-8 flex flex-col gap-5">
+            <form className="glass rounded-2xl p-8 flex flex-col gap-5 h-full min-h-[100%]">
               <h3 className="font-display text-2xl text-white">Quick Enquiry</h3>
 
               {[
@@ -359,7 +410,7 @@ export default function Home() {
 
               <button
                 type="submit"
-                className="mt-2 w-full py-4 bg-accent rounded-xl text-sm font-body font-semibold uppercase tracking-[0.2em] hover:bg-accent-dark transition-colors"
+                className="mt-auto w-full py-4 bg-accent rounded-xl text-sm font-body font-semibold uppercase tracking-[0.2em] hover:bg-accent-dark transition-colors"
               >
                 Send Enquiry
               </button>
@@ -370,6 +421,17 @@ export default function Home() {
         {/* Footer */}
         <div className="relative z-10 text-center mt-20 text-[10px] uppercase tracking-[0.3em] text-white/25 font-body">
           © {new Date().getFullYear()} Komban Bus Agency — Kerala, India
+          <div className="mt-4 tracking-[0.15em] text-white/45 normal-case">
+            developed by{" "}
+            <a
+              href="https://narrs.shahr.in/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-white/80 hover:text-accent transition-colors underline underline-offset-4"
+            >
+              narrs
+            </a>
+          </div>
         </div>
       </section>
 

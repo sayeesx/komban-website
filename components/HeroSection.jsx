@@ -24,17 +24,80 @@ export default function HeroSection({ scrollHeight = "500vh", endHold = 0 }) {
   const targetIdxRef   = useRef(0);
   const currentIdxRef  = useRef(0);
   const rafRef         = useRef(null);
-  // Once true, the hero stays on the final frame even when scrolling back up.
-  const endLockedRef   = useRef(false);
-
+  const smoothProgressRef = useRef(0);
+  const targetProgressRef = useRef(0);
   const [experienceReady, setExperienceReady] = useState(false);
-  const [atEnd, setAtEnd]                   = useState(false);
+  const [showFirstLoadGate, setShowFirstLoadGate] = useState(true);
 
   useEffect(() => {
     if ("scrollRestoration" in window.history) {
       window.history.scrollRestoration = "manual";
     }
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+
+    try {
+      const alreadyWarmed = window.localStorage.getItem("komban_frames_warmed") === "1";
+      if (alreadyWarmed) setShowFirstLoadGate(false);
+    } catch {
+      // ignore localStorage issues and keep gate enabled
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    let targetY = window.scrollY;
+    let currentY = window.scrollY;
+    let rafId = null;
+    let smoothing = false;
+
+    const clampY = (value) => {
+      const maxY = Math.max(
+        0,
+        document.documentElement.scrollHeight - window.innerHeight
+      );
+      return Math.min(Math.max(value, 0), maxY);
+    };
+
+    const tick = () => {
+      currentY += (targetY - currentY) * 0.09;
+      if (Math.abs(targetY - currentY) < 0.35) {
+        currentY = targetY;
+        smoothing = false;
+        window.scrollTo(0, currentY);
+        rafId = null;
+        return;
+      }
+      window.scrollTo(0, currentY);
+      rafId = requestAnimationFrame(tick);
+    };
+
+    const onWheel = (e) => {
+      e.preventDefault();
+      targetY = clampY(targetY + e.deltaY * 0.9);
+      if (!smoothing) {
+        smoothing = true;
+        if (!rafId) rafId = requestAnimationFrame(tick);
+      }
+    };
+
+    const onNativeScroll = () => {
+      if (smoothing) return;
+      currentY = window.scrollY;
+      targetY = window.scrollY;
+    };
+
+    window.addEventListener("wheel", onWheel, { passive: false });
+    window.addEventListener("scroll", onNativeScroll, { passive: true });
+    window.addEventListener("resize", onNativeScroll);
+
+    return () => {
+      window.removeEventListener("wheel", onWheel);
+      window.removeEventListener("scroll", onNativeScroll);
+      window.removeEventListener("resize", onNativeScroll);
+      if (rafId) cancelAnimationFrame(rafId);
+    };
   }, []);
 
   /* ── draw one frame (object-contain) ──────────────────────────── */
@@ -106,35 +169,55 @@ export default function HeroSection({ scrollHeight = "500vh", endHold = 0 }) {
   /* ── 1. boot: load first BOOT_FRAMES before revealing canvas ──── */
   useEffect(() => {
     let cancelled = false;
+    let readyTimeout = null;
     Promise.all(
       Array.from({ length: BOOT_FRAMES }, (_, i) =>
         new Promise((res) => {
           const img = new Image();
           img.decoding = "async";
           img.onload = () => {
-            if (!cancelled) { cacheRef.current.set(i, img); }
+            if (!cancelled) {
+              cacheRef.current.set(i, img);
+            }
             res();
           };
-          img.onerror = res;
+          img.onerror = () => {
+            res();
+          };
           img.src = framePath(i + 1);
         })
       )
     ).then(() => {
       if (cancelled) return;
-      let ok = true;
+      let firstValidIdx = -1;
       for (let i = 0; i < BOOT_FRAMES; i++) {
         const im = cacheRef.current.get(i);
-        if (!im?.complete || im.naturalWidth === 0) { ok = false; break; }
+        if (im?.complete && im.naturalWidth > 0) {
+          firstValidIdx = i;
+          break;
+        }
       }
-      if (!ok) return;
+      if (firstValidIdx < 0) {
+        setShowFirstLoadGate(false);
+        return;
+      }
       // Always start from frame 1 when the hero becomes ready.
-      endLockedRef.current = false;
-      currentIdxRef.current = 0;
-      syncBufferRef.current(0);
-      drawFrame(0);
-      setExperienceReady(true);
+      currentIdxRef.current = firstValidIdx;
+      syncBufferRef.current(firstValidIdx);
+      drawFrame(firstValidIdx);
+      readyTimeout = window.setTimeout(() => {
+        if (!cancelled) setExperienceReady(true);
+      }, 180);
+      try {
+        window.localStorage.setItem("komban_frames_warmed", "1");
+      } catch {
+        // ignore localStorage issues
+      }
     });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      if (readyTimeout) window.clearTimeout(readyTimeout);
+    };
   }, []);
 
   /* ── 2. DPR-aware canvas sizing ───────────────────────────────── */
@@ -167,33 +250,37 @@ export default function HeroSection({ scrollHeight = "500vh", endHold = 0 }) {
     return () => { cancelled = true; cancelIdleCallback(id); };
   }, [experienceReady]);
 
-  /* ── 4. scroll → frame (rAF-coalesced) ───────────────────────── */
+  /* ── 4. scroll → frame (lerped, buttery smooth) ──────────────── */
   useEffect(() => {
     if (!experienceReady) return;
-    const update = () => {
+    const render = () => {
       rafRef.current = null;
       const el = containerRef.current;
       if (!el) return;
       const rect   = el.getBoundingClientRect();
       const scroll = el.offsetHeight - window.innerHeight;
-      const prog   = Math.min(Math.max(-rect.top / Math.max(scroll, 1), 0), 1);
-      const anim   = Math.min(prog / Math.max(1 - endHold, 0.0001), 1);
-      const rawIdx = Math.min(FRAME_COUNT - 1, Math.floor(anim * FRAME_COUNT));
+      const rawProgress = Math.min(Math.max(-rect.top / Math.max(scroll, 1), 0), 1);
+      targetProgressRef.current = rawProgress;
 
-      // Hard reset near the top so the sequence always starts from frame 1.
-      if (prog <= 0.01) endLockedRef.current = false;
-      // Lock at the end to avoid reverse playback on small upward scroll.
-      if (rawIdx >= FRAME_COUNT - 1) endLockedRef.current = true;
-      const idx = endLockedRef.current ? FRAME_COUNT - 1 : rawIdx;
+      const current = smoothProgressRef.current;
+      const target = targetProgressRef.current;
+      const next = current + (target - current) * 0.12;
+      smoothProgressRef.current = Math.abs(target - next) < 0.0005 ? target : next;
+
+      const anim = Math.min(smoothProgressRef.current / Math.max(1 - endHold, 0.0001), 1);
+      const idx = Math.min(FRAME_COUNT - 1, Math.floor(anim * (FRAME_COUNT - 1)));
 
       syncBuffer(idx);
       currentIdxRef.current = idx;
       drawFrame(idx);
-      setAtEnd((p) => p === (idx >= FRAME_COUNT - 1) ? p : idx >= FRAME_COUNT - 1);
+
+      if (Math.abs(targetProgressRef.current - smoothProgressRef.current) > 0.0005) {
+        rafRef.current = requestAnimationFrame(render);
+      }
     };
     const onScroll = () => {
       if (rafRef.current != null) return;
-      rafRef.current = requestAnimationFrame(update);
+      rafRef.current = requestAnimationFrame(render);
     };
     window.addEventListener("scroll", onScroll, { passive: true });
     onScroll();
@@ -204,67 +291,83 @@ export default function HeroSection({ scrollHeight = "500vh", endHold = 0 }) {
   }, [experienceReady, drawFrame, endHold, syncBuffer]);
 
   return (
-    <section
-      ref={containerRef}
-      className="relative w-full bg-transparent"
-      style={{ height: scrollHeight }}
-      aria-label="Komban hero"
-    >
-      {/* ── sticky two-column stage ──────────────────────────────── */}
-      <div className="sticky top-0 h-screen w-full flex flex-col">
-
-        {/* red top glow */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-x-0 top-0 h-[55vh]"
-          style={{ background: "radial-gradient(ellipse at 50% 0%, rgba(225,6,0,0.22) 0%, transparent 65%)" }}
-        />
+    <>
+      {showFirstLoadGate && !experienceReady && (
+        <div className="fixed inset-0 z-[80] bg-black flex items-center justify-center px-6">
+          <div className="w-full max-w-sm text-center">
+            <img
+              src="/komban.png"
+              alt="Komban"
+              className="w-20 h-20 mx-auto mb-4 object-contain"
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = "/android-chrome-512x512.png";
+              }}
+            />
+            <p className="text-[10px] uppercase tracking-[0.35em] text-white/50 font-body mb-4">
+              Loading Komban Experience
+            </p>
+            <div className="relative h-px w-full bg-white/15 overflow-hidden">
+              <div
+                className="absolute inset-y-0 left-0 w-2/5 bg-accent animate-loader-slide"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+      <section
+        ref={containerRef}
+        className="relative w-full bg-black"
+        style={{ height: scrollHeight }}
+        aria-label="Komban hero"
+      >
+        {/* ── sticky two-column stage ──────────────────────────────── */}
+        <div className="sticky top-0 h-screen w-full flex flex-col bg-black">
 
         {/* ── NAV ────────────────────────────────────────────────── */}
-        <nav className="relative z-30 w-full px-6 md:px-12 pt-6 flex items-center justify-between flex-shrink-0">
+        <nav className="relative z-30 w-full px-4 md:px-12 pt-4 md:pt-6 flex items-center justify-between flex-shrink-0 gap-4">
           <KombanLogo />
 
-          <div className="hidden md:flex items-center gap-8 text-[11px] uppercase tracking-[0.25em] text-white/55 font-body ml-auto">
-            <a href="#fleet"   className="hover:text-white transition-colors">Fleet</a>
-            <a href="#about"   className="hover:text-white transition-colors">About</a>
-            <a href="#gallery" className="hover:text-white transition-colors">Gallery</a>
-            <a href="#contact" className="hover:text-white transition-colors">Contact</a>
-          </div>
+          <div className="ml-auto" />
+          <a
+            href="#fleet"
+            className="px-3.5 md:px-5 py-1.5 md:py-2.5 bg-accent rounded-full text-[10px] md:text-[11px] uppercase tracking-[0.18em] md:tracking-[0.2em] font-body font-medium hover:bg-accent-dark transition-colors"
+          >
+            Book
+          </a>
         </nav>
 
         {/* ── main two-column body ────────────────────────────────── */}
         {/* Desktop: left 2fr (copy) + right 6fr (larger canvas). Mobile: copy top, canvas below */}
-        <div className="relative z-10 flex-1 grid grid-cols-1 md:[grid-template-columns:2fr_6fr] items-center gap-0 px-6 md:px-12 pb-8">
+        <div className="relative z-10 flex-1 grid grid-cols-1 md:[grid-template-columns:2fr_6fr] items-center gap-3 md:gap-0 px-4 md:px-12 pt-12 md:pt-0 pb-5 md:pb-8">
 
           {/* ── LEFT: brand copy ─────────────────────────────────── */}
           {/* Mobile order-1 = on top. Desktop order stays natural (left col). */}
-          <div className="flex flex-col justify-center gap-5 md:pr-8 order-1 text-center md:text-left">
+          <div className="flex flex-col justify-center gap-4 md:gap-5 md:pr-8 order-1 text-center md:text-left md:-mt-4">
             {/* label */}
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 text-[10px] uppercase tracking-[0.35em] text-white/50 font-body self-center md:self-start">
               <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse-soft" />
-              Komban Bus Agency · Kerala
+              keralas top bus fleet
             </div>
+            <p className="text-[10px] text-white/75 font-body tracking-[0.04em] whitespace-nowrap self-center md:self-start">
+              ᴋᴇʀᴀʟᴀ: 7594 007 005 · ᴋᴀʀɴᴀᴛᴀᴋᴀ: 7594 007 004
+            </p>
 
-            <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl xl:text-7xl leading-[1.0] tracking-wide shimmer-text">
+            <h1 className="font-display text-[2.45rem] sm:text-[3.6rem] lg:text-6xl xl:text-7xl leading-[1.0] tracking-wide hero-title-gradient">
               one team<br />one fight
             </h1>
 
-            <p className="font-body text-sm sm:text-base text-white/55 max-w-md leading-relaxed self-center md:self-start">
+            <p className="font-body text-[10px] sm:text-[11px] text-white/55 max-w-sm md:max-w-md leading-relaxed self-center md:self-start">
               High-impact buses from Kerala with custom design, premium interiors,
               and strong road presence. Book for tours, events, and long routes.
             </p>
 
-            {/* scroll progress indicator (visible once frames load) */}
-            {experienceReady && (
-              <p className="font-body text-[10px] uppercase tracking-[0.35em] text-white/30 self-center md:self-start">
-                {atEnd ? "Keep scrolling ↓" : "Scroll to explore"}
-              </p>
-            )}
+            {/* scroll helper removed by request */}
           </div>
 
           {/* ── RIGHT: canvas animation ──────────────────────────── */}
           {/* Mobile order-2 = below text. Desktop occupies the wider right column. */}
-          <div className="relative flex items-center justify-center order-2 h-[58vh] md:h-[88vh]">
+          <div className="relative flex items-center justify-center order-2 h-[52vh] md:h-[88vh]">
             {!experienceReady && (
               <img
                 src={framePath(1)}
@@ -289,7 +392,8 @@ export default function HeroSection({ scrollHeight = "500vh", endHold = 0 }) {
         <div className="relative z-10 flex justify-center pb-5 flex-shrink-0">
           <span className="w-px h-10 bg-gradient-to-b from-white/25 to-transparent" />
         </div>
-      </div>
-    </section>
+        </div>
+      </section>
+    </>
   );
 }

@@ -9,7 +9,7 @@ export default function KombanLogo() {
   return (
     <div className="flex items-center gap-2">
       {!imgFailed && (
-        <div className="relative h-9 w-32 flex-shrink-0">
+        <div className="relative h-7 w-24 md:h-9 md:w-32 flex-shrink-0">
           <Image
             src="/komban.png"
             alt="Komban"

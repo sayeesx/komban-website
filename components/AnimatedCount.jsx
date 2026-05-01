@@ -40,5 +40,9 @@ export default function AnimatedCount({ to }) {
     };
   }, [to]);
 
-  return <span ref={ref}>{String(value).padStart(2, "0")}</span>;
+  return (
+    <span ref={ref} className="inline-block w-[2ch] tabular-nums text-right">
+      {String(value).padStart(2, "0")}
+    </span>
+  );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 
 const BUSES = [
@@ -77,6 +77,8 @@ const TIME_SLOTS = [
   "08:00 PM",
 ];
 
+const CONTACT_NUMBER = "75940070005";
+
 function hashSeed(value) {
   let hash = 0;
   for (let i = 0; i < value.length; i++) {
@@ -130,8 +132,17 @@ export default function FleetShowcase() {
     setSelectedSlot("");
   };
 
+  useEffect(() => {
+    if (!isModalOpen) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [isModalOpen]);
+
   return (
-    <section id="fleet" className="section-fade relative py-28 px-6 bg-surface">
+    <section id="fleet" className="section-fade relative py-16 md:py-24 lg:py-28 px-4 md:px-6 bg-surface">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-glow-red opacity-30"
@@ -205,13 +216,13 @@ export default function FleetShowcase() {
         </div>
 
         {isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center px-4 py-4">
             <div
               aria-hidden
               className="absolute inset-0 bg-black/80 backdrop-blur-sm"
               onClick={closeBookingModal}
             />
-            <div className="relative z-10 w-full max-w-3xl glass rounded-2xl p-6 md:p-8 text-left max-h-[90vh] overflow-y-auto">
+            <div className="relative z-10 w-full max-w-3xl glass rounded-2xl p-6 md:p-8 pb-8 text-left max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-[11px] uppercase tracking-widest text-white/40 font-body">
@@ -278,7 +289,7 @@ export default function FleetShowcase() {
 
               <div className="mt-7 flex flex-col sm:flex-row gap-3">
                 <a
-                  href={`https://wa.me/919XXXXXXXXX?text=${whatsappText}`}
+                  href={`https://wa.me/91${CONTACT_NUMBER}?text=${whatsappText}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className={`inline-flex items-center justify-center px-6 py-3 rounded-xl text-sm font-body font-semibold uppercase tracking-[0.16em] transition-colors ${
