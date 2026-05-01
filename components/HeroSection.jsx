@@ -25,6 +25,7 @@ export default function HeroSection({ scrollHeight = "500vh", endHold = 0 }) {
   const currentIdxRef  = useRef(0);
   const lastSyncedIdxRef = useRef(-1);
   const lastDrawnIdxRef = useRef(-1);
+  const lastRawProgressRef = useRef(0);
   const endLockedRef = useRef(false);
   const rafRef         = useRef(null);
   const smoothProgressRef = useRef(0);
@@ -77,6 +78,12 @@ export default function HeroSection({ scrollHeight = "500vh", endHold = 0 }) {
       return Math.min(Math.max(value, 0), maxY);
     };
 
+    const getHeroExitY = () => {
+      const el = containerRef.current;
+      if (!el) return 0;
+      return Math.max(0, el.offsetTop + el.offsetHeight - window.innerHeight);
+    };
+
     const tick = () => {
       currentY += (targetY - currentY) * 0.06;
       if (Math.abs(targetY - currentY) < 0.35) {
@@ -92,7 +99,12 @@ export default function HeroSection({ scrollHeight = "500vh", endHold = 0 }) {
 
     const onWheel = (e) => {
       e.preventDefault();
-      targetY = clampY(targetY + e.deltaY * 0.75);
+      let nextTarget = clampY(targetY + e.deltaY * 0.75);
+      // Mobile only: after final frame lock, block upward scrolling past hero boundary.
+      if (isMobileRef.current && endLockedRef.current && e.deltaY < 0) {
+        nextTarget = Math.max(nextTarget, getHeroExitY());
+      }
+      targetY = nextTarget;
       if (!smoothing) {
         smoothing = true;
         if (!rafId) rafId = requestAnimationFrame(tick);
@@ -100,6 +112,15 @@ export default function HeroSection({ scrollHeight = "500vh", endHold = 0 }) {
     };
 
     const onNativeScroll = () => {
+      if (isMobileRef.current && endLockedRef.current) {
+        const heroExitY = getHeroExitY();
+        if (window.scrollY < heroExitY) {
+          window.scrollTo(0, heroExitY);
+          currentY = heroExitY;
+          targetY = heroExitY;
+          return;
+        }
+      }
       if (smoothing) return;
       currentY = window.scrollY;
       targetY = window.scrollY;
@@ -277,9 +298,36 @@ export default function HeroSection({ scrollHeight = "500vh", endHold = 0 }) {
       rafRef.current = null;
       const el = containerRef.current;
       if (!el) return;
+      const maxPlayableFrame = Math.max(0, FRAME_COUNT - 6);
       const rect   = el.getBoundingClientRect();
       const scroll = el.offsetHeight - window.innerHeight;
       const rawProgress = Math.min(Math.max(-rect.top / Math.max(scroll, 1), 0), 1);
+      const prevRaw = lastRawProgressRef.current;
+      const isScrollingDown = rawProgress > prevRaw + 0.0005;
+      lastRawProgressRef.current = rawProgress;
+
+      // Mobile only: hard freeze while returning upward; unlock when user
+      // starts downward scrolling again from near the top of hero.
+      if (isMobileRef.current && endLockedRef.current) {
+        if (rawProgress <= 0.02 && isScrollingDown) {
+          endLockedRef.current = false;
+          smoothProgressRef.current = rawProgress;
+          targetProgressRef.current = rawProgress;
+          lastSyncedIdxRef.current = -1;
+          lastDrawnIdxRef.current = -1;
+        } else {
+        if (lastSyncedIdxRef.current !== maxPlayableFrame) {
+          syncBuffer(maxPlayableFrame);
+          lastSyncedIdxRef.current = maxPlayableFrame;
+        }
+        if (lastDrawnIdxRef.current !== maxPlayableFrame) {
+          currentIdxRef.current = maxPlayableFrame;
+          drawFrame(maxPlayableFrame);
+          lastDrawnIdxRef.current = maxPlayableFrame;
+        }
+        return;
+        }
+      }
       targetProgressRef.current = rawProgress;
 
       const current = smoothProgressRef.current;
@@ -292,13 +340,16 @@ export default function HeroSection({ scrollHeight = "500vh", endHold = 0 }) {
         smoothProgressRef.current / Math.max(1 - endHold, 0.0001),
         1
       );
-      const maxPlayableFrame = Math.max(0, FRAME_COUNT - 6);
       const computedIdx = Math.min(maxPlayableFrame, Math.floor(anim * maxPlayableFrame));
 
-      // Once the last frame is reached, keep it fixed until user returns near top.
-      if (computedIdx >= maxPlayableFrame - 1) endLockedRef.current = true;
-      if (smoothProgressRef.current <= 0.01) endLockedRef.current = false;
-      const idx = endLockedRef.current ? maxPlayableFrame : computedIdx;
+      // Mobile only: keep last frame fixed after reaching end.
+      if (isMobileRef.current && computedIdx >= maxPlayableFrame - 1) {
+        endLockedRef.current = true;
+      }
+      const idx =
+        isMobileRef.current && endLockedRef.current
+          ? maxPlayableFrame
+          : computedIdx;
 
       if (idx !== lastSyncedIdxRef.current) {
         syncBuffer(idx);
@@ -389,13 +440,12 @@ export default function HeroSection({ scrollHeight = "500vh", endHold = 0 }) {
               ᴋᴇʀᴀʟᴀ: 7594 007 005 · ᴋᴀʀɴᴀᴛᴀᴋᴀ: 7594 007 004
             </p>
 
-            <h1 className="font-display text-[2.8rem] sm:text-[3.6rem] lg:text-6xl xl:text-7xl leading-[1.0] tracking-wide hero-title-gradient">
+            <h1 className="font-display text-[3.1rem] sm:text-[3.6rem] lg:text-6xl xl:text-7xl leading-[1.0] tracking-wide hero-title-gradient">
               one team<br />one fight
             </h1>
 
             <p className="font-body text-[10px] sm:text-[11px] text-white/55 max-w-sm md:max-w-md leading-relaxed self-center md:self-start">
-              High-impact buses from Kerala with custom design, premium interiors,
-              and strong road presence. Book for tours, events, and long routes.
+              High-impact buses with custom design and premium interiors. Book now.
             </p>
 
             {/* scroll helper removed by request */}
