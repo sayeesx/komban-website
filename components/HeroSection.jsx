@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useCallback } from "react";
 import { FRAME_COUNT, framePath } from "@/lib/framesConfig";
 import KombanLogo from "@/components/KombanLogo";
 
 /* ─── how many leading frames to load before revealing the canvas ─── */
-const BOOT_FRAMES   = 10;
+const BOOT_FRAMES   = 18;
 const BUFFER_RADIUS = 6;
+/** Cap canvas backing store scale for smoother scroll-driven draws on hi-DPI screens */
+const MAX_CANVAS_DPR = 1.75;
 
 /* ────────────────────────────────────────────────────────────────────
  * HeroSection
@@ -26,7 +28,8 @@ export default function HeroSection({ scrollHeight = "500vh", endHold = 0 }) {
   const lastSyncedIdxRef = useRef(-1);
   const lastDrawnIdxRef = useRef(-1);
   const lastRawProgressRef = useRef(0);
-  const endLockedRef = useRef(false);
+  /** After the hero sequence completes once, freeze on the last frame and stop scroll-driven work */
+  const heroSequenceDoneRef = useRef(false);
   const rafRef         = useRef(null);
   const smoothProgressRef = useRef(0);
   const targetProgressRef = useRef(0);
@@ -34,12 +37,21 @@ export default function HeroSection({ scrollHeight = "500vh", endHold = 0 }) {
   const [isMobile, setIsMobile] = useState(false);
   const [experienceReady, setExperienceReady] = useState(false);
   const [showFirstLoadGate, setShowFirstLoadGate] = useState(true);
+  /** Mobile: sequence reached last frame (scroll hook removed) */
+  const [mobilePlaybackFinished, setMobilePlaybackFinished] = useState(false);
+  /** Mobile: hero shortened to 100svh after user scrolls back near top — avoids 190vh “dead track” on next pass */
+  const [mobileHeroCompact, setMobileHeroCompact] = useState(false);
+  const preCompactHeroPxRef = useRef(0);
+  const preCompactScrollYRef = useRef(0);
 
   useEffect(() => {
     if ("scrollRestoration" in window.history) {
       window.history.scrollRestoration = "manual";
     }
-    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    /* Desktop only: forcing scroll(0) on mobile fights Safari’s viewport chrome and looks like a mini “refresh” */
+    if (typeof window !== "undefined" && !window.matchMedia("(max-width: 767px)").matches) {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    }
 
     try {
       const alreadyWarmed = window.localStorage.getItem("komban_frames_warmed") === "1";
@@ -138,7 +150,7 @@ export default function HeroSection({ scrollHeight = "500vh", endHold = 0 }) {
     const x = (cw - w) / 2, y = (ch - h) / 2;
 
     ctx.imageSmoothingEnabled  = true;
-    ctx.imageSmoothingQuality  = "high";
+    ctx.imageSmoothingQuality  = "medium";
     ctx.clearRect(0, 0, cw, ch);
     ctx.drawImage(img, x, y, w, h);
   }, []);
@@ -186,6 +198,9 @@ export default function HeroSection({ scrollHeight = "500vh", endHold = 0 }) {
   const syncBufferRef = useRef(syncBuffer);
   syncBufferRef.current = syncBuffer;
 
+  const drawFrameRef = useRef(drawFrame);
+  drawFrameRef.current = drawFrame;
+
   /* ── 1. boot: load first BOOT_FRAMES before revealing canvas ──── */
   useEffect(() => {
     let cancelled = false;
@@ -225,7 +240,9 @@ export default function HeroSection({ scrollHeight = "500vh", endHold = 0 }) {
       currentIdxRef.current = firstValidIdx;
       lastSyncedIdxRef.current = firstValidIdx;
       lastDrawnIdxRef.current = firstValidIdx;
-      endLockedRef.current = false;
+      heroSequenceDoneRef.current = false;
+      setMobilePlaybackFinished(false);
+      setMobileHeroCompact(false);
       syncBufferRef.current(firstValidIdx);
       drawFrame(firstValidIdx);
       readyTimeout = window.setTimeout(() => {
@@ -248,7 +265,7 @@ export default function HeroSection({ scrollHeight = "500vh", endHold = 0 }) {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const resize = () => {
-      const dpr = window.devicePixelRatio || 1;
+      const dpr = Math.min(window.devicePixelRatio || 1, MAX_CANVAS_DPR);
       canvas.width  = Math.floor(canvas.clientWidth  * dpr);
       canvas.height = Math.floor(canvas.clientHeight * dpr);
       ctxRef.current = null;
@@ -259,11 +276,15 @@ export default function HeroSection({ scrollHeight = "500vh", endHold = 0 }) {
     return () => window.removeEventListener("resize", resize);
   }, [drawFrame, experienceReady]);
 
-  /* ── 3. idle fetch warm-up ────────────────────────────────────── */
+  /* ── 3. idle fetch warm-up (stops once hero sequence finished — avoids decode contention on mobile) ─ */
   useEffect(() => {
     if (!experienceReady || typeof requestIdleCallback === "undefined") return;
     let cancelled = false, cursor = 0;
     let id = requestIdleCallback(function step(dl) {
+      if (heroSequenceDoneRef.current) {
+        cancelled = true;
+        return;
+      }
       while (!cancelled && cursor < FRAME_COUNT && dl.timeRemaining() > 1) {
         void fetch(framePath(cursor + 1), { cache: "force-cache" }).catch(() => {});
         cursor++;
@@ -273,39 +294,53 @@ export default function HeroSection({ scrollHeight = "500vh", endHold = 0 }) {
     return () => { cancelled = true; cancelIdleCallback(id); };
   }, [experienceReady]);
 
-  /* ── 4. scroll → frame (lerped, buttery smooth) ──────────────── */
+  /* ── 4. scroll → frame. Desktop: lerped. Mobile: snap to scroll (no chase RAF when reversing scroll). ─ */
   useEffect(() => {
     if (!experienceReady) return;
+
+    let onScroll = () => {};
+
+    const finalizeSequence = (maxPlayableFrame) => {
+      if (heroSequenceDoneRef.current) return;
+      heroSequenceDoneRef.current = true;
+      smoothProgressRef.current = 1;
+      targetProgressRef.current = 1;
+      currentIdxRef.current = maxPlayableFrame;
+      syncBufferRef.current(maxPlayableFrame);
+      lastSyncedIdxRef.current = maxPlayableFrame;
+      drawFrameRef.current(maxPlayableFrame);
+      lastDrawnIdxRef.current = maxPlayableFrame;
+      window.removeEventListener("scroll", onScroll);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+
+      if (isMobileRef.current) setMobilePlaybackFinished(true);
+    };
+
     const render = () => {
       rafRef.current = null;
+      if (heroSequenceDoneRef.current) return;
+
       const el = containerRef.current;
       if (!el) return;
       const maxPlayableFrame = Math.max(0, FRAME_COUNT - 6);
-      const rect   = el.getBoundingClientRect();
-      const scroll = el.offsetHeight - window.innerHeight;
-      const rawProgress = Math.min(Math.max(-rect.top / Math.max(scroll, 1), 0), 1);
+      const rect = el.getBoundingClientRect();
+      const scrollRange = el.offsetHeight - window.innerHeight;
+      const rawProgress = Math.min(Math.max(-rect.top / Math.max(scrollRange, 1), 0), 1);
       lastRawProgressRef.current = rawProgress;
 
-      // Mobile only: hard freeze permanently after reaching end (until refresh).
-      if (isMobileRef.current && endLockedRef.current) {
-        if (lastSyncedIdxRef.current !== maxPlayableFrame) {
-          syncBuffer(maxPlayableFrame);
-          lastSyncedIdxRef.current = maxPlayableFrame;
-        }
-        if (lastDrawnIdxRef.current !== maxPlayableFrame) {
-          currentIdxRef.current = maxPlayableFrame;
-          drawFrame(maxPlayableFrame);
-          lastDrawnIdxRef.current = maxPlayableFrame;
-        }
-        return;
-      }
       targetProgressRef.current = rawProgress;
 
-      const current = smoothProgressRef.current;
-      const target = targetProgressRef.current;
-      const lerp = isMobileRef.current ? 0.2 : 0.12;
-      const next = current + (target - current) * lerp;
-      smoothProgressRef.current = Math.abs(target - next) < 0.0005 ? target : next;
+      if (isMobileRef.current) {
+        /* No lerp on mobile — avoids multi-second RAF “catch-up” when scrolling back up through the hero */
+        smoothProgressRef.current = rawProgress;
+      } else {
+        const current = smoothProgressRef.current;
+        const target = targetProgressRef.current;
+        const lerp = 0.2;
+        const next = current + (target - current) * lerp;
+        smoothProgressRef.current = Math.abs(target - next) < 0.0005 ? target : next;
+      }
 
       const anim = Math.min(
         smoothProgressRef.current / Math.max(1 - endHold, 0.0001),
@@ -313,40 +348,83 @@ export default function HeroSection({ scrollHeight = "500vh", endHold = 0 }) {
       );
       const computedIdx = Math.min(maxPlayableFrame, Math.floor(anim * maxPlayableFrame));
 
-      // Mobile only: keep last frame fixed after reaching end.
-      if (isMobileRef.current && computedIdx >= maxPlayableFrame - 1) {
-        endLockedRef.current = true;
+      /* Mobile: snap progress makes computedIdx track scroll exactly; allow finish at second-to-last playable frame so dynamic browser chrome never blocks completion */
+      const reachedEnd = isMobileRef.current
+        ? computedIdx >= maxPlayableFrame - 1 || rawProgress >= 0.997
+        : computedIdx >= maxPlayableFrame || rawProgress >= 0.998;
+
+      /* Mobile: lock on last frame and detach scroll handler. Desktop: keep scrolling — reverse frames when scrolling back up */
+      if (reachedEnd && isMobileRef.current) {
+        finalizeSequence(maxPlayableFrame);
+        return;
       }
-      const idx =
-        isMobileRef.current && endLockedRef.current
-          ? maxPlayableFrame
-          : computedIdx;
+
+      const idx = computedIdx;
 
       if (idx !== lastSyncedIdxRef.current) {
-        syncBuffer(idx);
+        syncBufferRef.current(idx);
         lastSyncedIdxRef.current = idx;
       }
       if (idx !== lastDrawnIdxRef.current) {
         currentIdxRef.current = idx;
-        drawFrame(idx);
+        drawFrameRef.current(idx);
         lastDrawnIdxRef.current = idx;
       }
 
-      if (Math.abs(targetProgressRef.current - smoothProgressRef.current) > 0.0005) {
+      if (
+        !isMobileRef.current &&
+        Math.abs(targetProgressRef.current - smoothProgressRef.current) > 0.0005
+      ) {
         rafRef.current = requestAnimationFrame(render);
       }
     };
-    const onScroll = () => {
+
+    onScroll = () => {
+      if (heroSequenceDoneRef.current) return;
       if (rafRef.current != null) return;
       rafRef.current = requestAnimationFrame(render);
     };
+
     window.addEventListener("scroll", onScroll, { passive: true });
     onScroll();
     return () => {
       window.removeEventListener("scroll", onScroll);
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [experienceReady, drawFrame, endHold, syncBuffer]);
+  }, [experienceReady, endHold]);
+
+  /* Mobile: when playback is done, wait until user is near the top, then shrink hero (no jump mid-animation) */
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!mobilePlaybackFinished || mobileHeroCompact || !isMobile) return;
+
+    const NEAR_TOP = 108;
+
+    const tryCompact = () => {
+      if (window.scrollY > NEAR_TOP) return;
+      const el = containerRef.current;
+      if (!el) return;
+      preCompactHeroPxRef.current = el.offsetHeight;
+      preCompactScrollYRef.current = window.scrollY;
+      setMobileHeroCompact(true);
+    };
+
+    window.addEventListener("scroll", tryCompact, { passive: true });
+    tryCompact();
+    return () => window.removeEventListener("scroll", tryCompact);
+  }, [mobilePlaybackFinished, mobileHeroCompact, isMobile]);
+
+  useLayoutEffect(() => {
+    if (!mobileHeroCompact || typeof window === "undefined") return;
+    const el = containerRef.current;
+    const oldH = preCompactHeroPxRef.current;
+    if (!el || oldH <= 0) return;
+    const newH = el.offsetHeight;
+    const delta = oldH - newH;
+    if (delta <= 1) return;
+    const y = preCompactScrollYRef.current;
+    window.scrollTo({ top: Math.max(0, y - delta), left: 0, behavior: "auto" });
+  }, [mobileHeroCompact]);
 
   return (
     <>
@@ -376,7 +454,9 @@ export default function HeroSection({ scrollHeight = "500vh", endHold = 0 }) {
       <section
         ref={containerRef}
         className="relative w-full bg-black"
-        style={{ height: isMobile ? "190vh" : scrollHeight }}
+        style={{
+          height: isMobile ? (mobileHeroCompact ? "100svh" : "190vh") : scrollHeight,
+        }}
         aria-label="Komban hero"
       >
         {/* ── sticky two-column stage ──────────────────────────────── */}
@@ -436,7 +516,7 @@ export default function HeroSection({ scrollHeight = "500vh", endHold = 0 }) {
 
             <canvas
               ref={canvasRef}
-              className="relative z-10 w-full h-full"
+              className="relative z-10 w-full h-full transform-gpu"
               style={{
                 opacity: 1,
                 maxHeight: "100%",

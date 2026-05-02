@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import Image from "next/image";
 
 const BUSES = [
@@ -104,6 +105,11 @@ export default function FleetShowcase() {
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [selectedSlot, setSelectedSlot] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [portalReady, setPortalReady] = useState(false);
+
+  useEffect(() => {
+    setPortalReady(true);
+  }, []);
 
   const selectedBus = useMemo(
     () => BUSES.find((b) => b.id === selectedBusId) || BUSES[0],
@@ -215,102 +221,112 @@ export default function FleetShowcase() {
           })}
         </div>
 
-        {isModalOpen && (
-          <div className="fixed inset-0 z-[999] flex items-center justify-center p-3 sm:p-5">
+        {portalReady &&
+          isModalOpen &&
+          createPortal(
             <div
-              aria-hidden
-              className="absolute inset-0 bg-black/85 backdrop-blur-sm"
-              onClick={closeBookingModal}
-            />
-            <div className="relative z-[1000] w-full max-w-3xl glass rounded-2xl p-5 md:p-8 pb-8 text-left max-h-[92dvh] overflow-y-auto overscroll-contain">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-[11px] uppercase tracking-widest text-white/40 font-body">
-                    Booking for
-                  </p>
-                  <h3 className="font-display text-3xl text-white">{selectedBus.name}</h3>
+              className="fixed inset-0 z-[10050] flex min-h-[100dvh] items-center justify-center overflow-y-auto overscroll-contain p-3 sm:p-5"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="fleet-booking-title"
+            >
+              <div
+                aria-hidden
+                className="fixed inset-0 bg-black/85 backdrop-blur-sm"
+                onClick={closeBookingModal}
+              />
+              <div className="relative z-[10051] my-auto w-full max-w-3xl glass rounded-2xl p-5 md:p-8 pb-8 text-left max-h-[min(92dvh,calc(100dvh-2rem))] overflow-y-auto overscroll-contain shadow-[0_24px_80px_rgba(0,0,0,0.65)]">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-[11px] uppercase tracking-widest text-white/40 font-body">
+                      Booking for
+                    </p>
+                    <h3 id="fleet-booking-title" className="font-display text-3xl text-white">
+                      {selectedBus.name}
+                    </h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={closeBookingModal}
+                    className="w-10 h-10 shrink-0 rounded-full border border-white/20 text-white/80 hover:bg-white/10 transition-colors"
+                    aria-label="Close booking modal"
+                  >
+                    ✕
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={closeBookingModal}
-                  className="w-10 h-10 rounded-full border border-white/20 text-white/80 hover:bg-white/10 transition-colors"
-                  aria-label="Close booking modal"
-                >
-                  ✕
-                </button>
-              </div>
 
-              <div className="w-full mt-6">
-                <label
-                  htmlFor="fleet-booking-date"
-                  className="block text-[10px] uppercase tracking-widest text-white/40 font-body mb-2"
-                >
-                  Select Date
-                </label>
-                <input
-                  id="fleet-booking-date"
-                  type="date"
-                  value={date}
-                  min={new Date().toISOString().slice(0, 10)}
-                  onChange={(e) => {
-                    setDate(e.target.value);
-                    setSelectedSlot("");
-                  }}
-                  className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-body focus:outline-none focus:border-accent/60"
-                />
-              </div>
+                <div className="w-full mt-6">
+                  <label
+                    htmlFor="fleet-booking-date"
+                    className="block text-[10px] uppercase tracking-widest text-white/40 font-body mb-2"
+                  >
+                    Select Date
+                  </label>
+                  <input
+                    id="fleet-booking-date"
+                    type="date"
+                    value={date}
+                    min={new Date().toISOString().slice(0, 10)}
+                    onChange={(e) => {
+                      setDate(e.target.value);
+                      setSelectedSlot("");
+                    }}
+                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-body focus:outline-none focus:border-accent/60"
+                  />
+                </div>
 
-              <p className="mt-6 text-[10px] uppercase tracking-widest text-white/40 font-body">
-                Choose Slot (grey = booked)
-              </p>
-              <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {TIME_SLOTS.map((slot, idx) => {
-                  const isBooked = bookedSlotIndexes.has(idx);
-                  const isSelected = selectedSlot === slot;
-                  return (
-                    <button
-                      key={slot}
-                      type="button"
-                      disabled={isBooked}
-                      onClick={() => setSelectedSlot(slot)}
-                      className={`py-2.5 rounded-lg text-xs font-body uppercase tracking-[0.12em] transition-colors ${
-                        isBooked
-                          ? "bg-zinc-700/80 text-zinc-300 cursor-not-allowed"
-                          : isSelected
-                          ? "bg-accent text-white"
-                          : "bg-white/5 text-white hover:bg-white/10"
-                      }`}
-                    >
-                      {slot}
-                    </button>
-                  );
-                })}
-              </div>
+                <p className="mt-6 text-[10px] uppercase tracking-widest text-white/40 font-body">
+                  Choose Slot (shaded red = taken)
+                </p>
+                <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {TIME_SLOTS.map((slot, idx) => {
+                    const isBooked = bookedSlotIndexes.has(idx);
+                    const isSelected = selectedSlot === slot;
+                    return (
+                      <button
+                        key={slot}
+                        type="button"
+                        disabled={isBooked}
+                        onClick={() => setSelectedSlot(slot)}
+                        className={`py-2.5 rounded-lg text-xs font-body uppercase tracking-[0.12em] transition-colors border ${
+                          isBooked
+                            ? "border-accent/35 bg-accent/15 text-white/45 shadow-[inset_0_0_24px_rgba(225,6,0,0.12)] cursor-not-allowed"
+                            : isSelected
+                            ? "border-transparent bg-accent text-white"
+                            : "border-transparent bg-white/5 text-white hover:bg-white/10"
+                        }`}
+                      >
+                        {slot}
+                      </button>
+                    );
+                  })}
+                </div>
 
-              <div className="mt-7 flex flex-col sm:flex-row gap-3">
-                <a
-                  href={`https://wa.me/91${CONTACT_NUMBER}?text=${whatsappText}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`inline-flex items-center justify-center px-6 py-3 rounded-xl text-sm font-body font-semibold uppercase tracking-[0.16em] transition-colors ${
-                    selectedSlot
-                      ? "bg-accent text-white hover:bg-accent-dark"
-                      : "bg-zinc-700 text-zinc-300 cursor-not-allowed pointer-events-none"
-                  }`}
-                >
-                  Book Selected Slot
-                </a>
-                <a
-                  href="#contact"
-                  onClick={closeBookingModal}
-                  className="inline-flex items-center justify-center px-6 py-3 border border-white/20 rounded-xl text-sm font-body font-medium uppercase tracking-[0.16em] text-white hover:bg-white/5 transition-colors"
-                >
-                  Enquiry Form
-                </a>
+                <div className="mt-7 flex flex-col sm:flex-row gap-3">
+                  <a
+                    href={`https://wa.me/91${CONTACT_NUMBER}?text=${whatsappText}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`inline-flex items-center justify-center px-6 py-3 rounded-xl text-sm font-body font-semibold uppercase tracking-[0.16em] transition-colors ${
+                      selectedSlot
+                        ? "bg-accent text-white hover:bg-accent-dark"
+                        : "bg-zinc-700 text-zinc-300 cursor-not-allowed pointer-events-none"
+                    }`}
+                  >
+                    Book Selected Slot
+                  </a>
+                  <a
+                    href="#contact"
+                    onClick={closeBookingModal}
+                    className="inline-flex items-center justify-center px-6 py-3 border border-white/20 rounded-xl text-sm font-body font-medium uppercase tracking-[0.16em] text-white hover:bg-white/5 transition-colors"
+                  >
+                    Enquiry Form
+                  </a>
+                </div>
               </div>
-            </div>
-          </div>
-        )}
+            </div>,
+            document.body
+          )}
       </div>
     </section>
   );

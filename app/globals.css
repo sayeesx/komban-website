@@ -71,6 +71,24 @@ textarea:-webkit-autofill:focus {
 .animate-fade-up    { animation: fadeUp    0.7s ease-out both; }
 .animate-loader-slide { animation: loader-slide 1.25s ease-in-out infinite; }
 
+/* Gallery image loading skeleton (accent-tinted shimmer) */
+@keyframes gallery-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.gallery-image-skeleton {
+  background: linear-gradient(
+    100deg,
+    #121212 0%,
+    #1a1414 38%,
+    rgba(225, 6, 0, 0.22) 50%,
+    #1a1414 62%,
+    #121212 100%
+  );
+  background-size: 220% 100%;
+  animation: gallery-shimmer 1.65s ease-in-out infinite;
+}
+
 .shimmer-text {
   background: linear-gradient(90deg, #fff 0%, var(--gold) 40%, #fff 60%, var(--gold) 100%);
   background-size: 200% auto;

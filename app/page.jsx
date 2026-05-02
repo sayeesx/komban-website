@@ -1,6 +1,6 @@
-import Image from "next/image";
 import HeroSection from "@/components/HeroSection";
 import FleetShowcase from "@/components/FleetShowcase";
+import GalleryGrid from "@/components/GalleryGrid";
 import AnimatedCount from "@/components/AnimatedCount";
 
 /* ─────────────────────── small reusable atoms ─────────────────────── */
@@ -10,12 +10,12 @@ const CONTACT_NUMBERS = {
 };
 
 const GALLERY_IMAGES = [
-  "https://res.cloudinary.com/dhh2nd2bg/image/upload/v1777650788/dawood_ouyj83.png",
-  "https://res.cloudinary.com/dhh2nd2bg/image/upload/v1777650787/bombay_gzwbwb.png",
-  "https://res.cloudinary.com/dhh2nd2bg/image/upload/v1777650786/big-brother_ze9aua.png",
-  "https://res.cloudinary.com/dhh2nd2bg/image/upload/v1777650780/yodhavu_usbkhq.png",
-  "https://res.cloudinary.com/dhh2nd2bg/image/upload/v1777650788/dawood_ouyj83.png",
-  "https://res.cloudinary.com/dhh2nd2bg/image/upload/v1777650786/big-brother_ze9aua.png",
+  "https://res.cloudinary.com/dhh2nd2bg/image/upload/v1777682980/20260502_060202_1_fcz3zn.png",
+  "https://res.cloudinary.com/dhh2nd2bg/image/upload/v1777682980/20260502_060343_1_owx7fs.png",
+  "https://res.cloudinary.com/dhh2nd2bg/image/upload/v1777682980/20260502_060232_1_nztdsb.png",
+  "https://res.cloudinary.com/dhh2nd2bg/image/upload/v1777682979/20260502_060322_1_zhxjhn.png",
+  "https://res.cloudinary.com/dhh2nd2bg/image/upload/v1777682979/20260502_060256_1_buyfie.png",
+  "https://res.cloudinary.com/dhh2nd2bg/image/upload/v1777682979/20260502_060107_1_i0rhs7.jpg",
 ];
 
 function PremiumIcon({ type }) {
@@ -224,14 +224,14 @@ export default function Home() {
             ))}
           </div>
 
-          <div className="mt-14 flex flex-row items-stretch justify-center gap-3 sm:gap-4">
+          <div className="mt-14 flex flex-row items-stretch justify-center gap-2.5 sm:gap-4">
             <a
               href={`https://wa.me/91${CONTACT_NUMBERS.kerala.replace(/\s/g, "")}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 px-4 sm:px-8 py-4 bg-accent text-white text-[11px] sm:text-sm font-body font-medium uppercase tracking-[0.16em] sm:tracking-[0.2em] rounded-full hover:bg-accent-dark transition-colors min-w-0 flex-1 sm:flex-initial"
+              className="inline-flex items-center justify-center gap-1.5 sm:gap-2 px-8 py-3.5 sm:py-4 bg-accent text-white text-[11px] sm:text-sm font-body font-medium uppercase tracking-[0.22em] sm:tracking-[0.2em] rounded-full hover:bg-accent-dark transition-colors min-w-0 flex-1 sm:flex-initial"
             >
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
                 <path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.549 4.118 1.51 5.854L0 24l6.335-1.485A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.806 9.806 0 01-5.003-1.371l-.359-.213-3.72.872.937-3.62-.234-.371A9.818 9.818 0 012.182 12C2.182 6.575 6.575 2.182 12 2.182S21.818 6.575 21.818 12 17.425 21.818 12 21.818z"/>
               </svg>
@@ -239,7 +239,7 @@ export default function Home() {
             </a>
             <a
               href={`tel:+91${CONTACT_NUMBERS.kerala.replace(/\s/g, "")}`}
-              className="inline-flex items-center justify-center gap-2 px-4 sm:px-8 py-4 border border-white/20 text-white text-[11px] sm:text-sm font-body font-medium uppercase tracking-[0.16em] sm:tracking-[0.2em] rounded-full hover:bg-white/5 transition-colors min-w-0 flex-1 sm:flex-initial"
+              className="inline-flex items-center justify-center gap-1.5 sm:gap-2 px-8 py-3.5 sm:py-4 border border-white/20 text-white text-[11px] sm:text-sm font-body font-medium uppercase tracking-[0.22em] sm:tracking-[0.2em] rounded-full hover:bg-white/5 transition-colors min-w-0 flex-1 sm:flex-initial"
             >
               Call Now
             </a>
@@ -279,25 +279,13 @@ export default function Home() {
       <section id="gallery" className="section-fade relative py-16 md:py-24 lg:py-28 px-4 md:px-6 bg-surface">
         <div className="max-w-6xl mx-auto text-center">
           <SectionLabel>Gallery</SectionLabel>
-          <SectionHeading>Roads We&apos;ve Owned</SectionHeading>
-          <Divider />
-          <p className="text-white/45 font-body text-sm mb-12 max-w-xl mx-auto">
-            Night highways, glowing interiors, event convoys — Komban buses always deliver the shot.
+          <SectionHeading>Stories on Wheels</SectionHeading>
+          <p className="text-white/60 font-body text-base md:text-lg mt-4 mb-2 max-w-xl mx-auto">
+            Where memories are made.
           </p>
+          <Divider />
 
-          {/* Cloudinary gallery thumbnails */}
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {GALLERY_IMAGES.map((src, index) => (
-              <div key={`${src}-${index}`} className="relative aspect-video rounded-xl overflow-hidden bg-transparent">
-                <Image
-                  src={src}
-                  alt={`Komban gallery image ${index + 1}`}
-                  fill
-                  className="object-contain p-1"
-                />
-              </div>
-            ))}
-          </div>
+          <GalleryGrid images={GALLERY_IMAGES} />
         </div>
       </section>
 
