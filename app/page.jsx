@@ -18,38 +18,32 @@ const GALLERY_IMAGES = [
   "https://res.cloudinary.com/dhh2nd2bg/image/upload/v1777682979/20260502_060107_1_i0rhs7.jpg",
 ];
 
+const PREMIUM_ICON_SVG = {
+  private: "/private.svg",
+  events: "/event.svg",
+  tours: "/tours.svg",
+  groups: "/college.svg",
+};
+
+/** Raster SVGs from /public — masked with accent fill (matches former text-accent icons). */
 function PremiumIcon({ type }) {
-  const base = "w-6 h-6 text-accent";
-  if (type === "private") {
-    return (
-      <svg viewBox="0 0 24 24" className={base} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M3 12h18" />
-        <path d="M6 12v5a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-5" />
-        <path d="M7 12V8a5 5 0 0 1 10 0v4" />
-      </svg>
-    );
-  }
-  if (type === "events") {
-    return (
-      <svg viewBox="0 0 24 24" className={base} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 21s-7-4.3-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 11c0 5.7-7 10-7 10Z" />
-      </svg>
-    );
-  }
-  if (type === "tours") {
-    return (
-      <svg viewBox="0 0 24 24" className={base} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="9" />
-        <path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18" />
-      </svg>
-    );
-  }
+  const src = PREMIUM_ICON_SVG[type];
+  if (!src) return null;
   return (
-    <svg viewBox="0 0 24 24" className={base} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M4 7h16" />
-      <path d="M6 4h12v16H6z" />
-      <path d="M9 11h6M9 15h4" />
-    </svg>
+    <span
+      className="inline-block h-6 w-6 shrink-0 bg-accent"
+      style={{
+        maskImage: `url(${src})`,
+        WebkitMaskImage: `url(${src})`,
+        maskSize: "contain",
+        WebkitMaskSize: "contain",
+        maskRepeat: "no-repeat",
+        WebkitMaskRepeat: "no-repeat",
+        maskPosition: "center",
+        WebkitMaskPosition: "center",
+      }}
+      aria-hidden
+    />
   );
 }
 
@@ -135,13 +129,13 @@ export default function Home() {
             Kerala&apos;s Biggest Fleet
           </p>
           <p className="text-white/55 font-body max-w-2xl mx-auto mb-16 text-base leading-relaxed">
-            Komban Bus Agency delivers premium travel experiences across Kerala. Our fleet combines bold design,
+            Komban delivers premium travel experiences across Kerala. Our fleet combines bold design,
             advanced lighting, and comfortable interiors built for long-distance journeys and events.
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {[
-              { icon: "private", title: "Private Rentals",    desc: "Exclusive bus hire for your group — no sharing, no compromise." },
+              { icon: "private", title: "Private Charter",    desc: "Exclusive travel for your group — no sharing, no compromise." },
               { icon: "events", title: "Events & Weddings",  desc: "Ceremonial transport with custom branding, on time every time." },
               { icon: "tours", title: "Tours & Long Routes", desc: "Interstate and long-distance trips with experienced drivers." },
               { icon: "groups", title: "College & Groups",   desc: "Affordable group bookings for institutions and corporates." },
@@ -408,7 +402,7 @@ export default function Home() {
 
         {/* Footer */}
         <div className="relative z-10 text-center mt-20 text-[10px] uppercase tracking-[0.3em] text-white/25 font-body">
-          © {new Date().getFullYear()} Komban Bus Agency — Kerala, India
+          © {new Date().getFullYear()} Komban — Kerala, India
           <div className="mt-4 tracking-[0.15em] text-white/45 normal-case">
             developed by{" "}
             <a

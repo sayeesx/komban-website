@@ -19,9 +19,9 @@ const redRose = Red_Rose({
 });
 
 export const metadata = {
-  title: "Komban Bus Agency — Premium Bus Rentals Kerala",
+  title: "Komban - one team one fight",
   description:
-    "High-impact buses from Kerala with custom design, premium interiors, and strong road presence. Book for tours, events, and long routes.",
+    "One team. One fight. Bold buses, custom design, and premium interiors — Kerala's fleet built for the road.",
   // ── Favicons — all files live in /public ──────────────────────────
   icons: {
     // Browser tab (fallback)
