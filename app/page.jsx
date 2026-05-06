@@ -406,7 +406,7 @@ export default function Home() {
           <div className="mt-4 tracking-[0.15em] text-white/45 normal-case">
             developed by{" "}
             <a
-              href="https://narrs.shahr.in/"
+              href="https://narrs.in/"
               target="_blank"
               rel="noopener noreferrer"
               className="text-white/80 hover:text-accent transition-colors underline underline-offset-4"
